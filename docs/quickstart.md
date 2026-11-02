@@ -4,9 +4,9 @@ Try the hosted API in the browser before you clone anything:
 
 **[https://jevtypesafe.org/people-search/](https://jevtypesafe.org/people-search/)**
 
-Sign in, create a `jv_live_` key on [Account](https://jevtypesafe.org/account/), and use **Try the API**. The panel calls production `POST /api/v1/people/email/find`. The key stays in that browser tab.
+Sign in, create a `jv_live_` key on [Account](https://jevtypesafe.org/account/), and use **Try the API**. A new account includes **5 free People Search trials**. The panel calls production `POST /api/v1/people/email/find`. The key stays in that browser tab.
 
-## 1. Key and balance
+## 1. Key
 
 ```bash
 cp .env.example .env
@@ -14,7 +14,7 @@ cp .env.example .env
 
 Set `JEV_API_KEY`. The scripts read `.env` and do not override variables you already exported.
 
-People Search places a short credit hold (about 1.19M credits, ~$0.50 retail) and then settles to the real upstream cost × 10. The monthly grant on a new account is 10,000 credits, which is smaller than that hold. A [$5 pack](https://jevtypesafe.org/pricing/) is enough to try. See the pricing section in the README.
+The first 5 successful finds on that account are free (`usage.trial_used: true`, `credits_charged: 0`). A failed lookup does not consume a trial. After that, People Search holds about 1.19M credits (~$0.50 retail) and settles to the real upstream cost × 10. See the pricing section in the README.
 
 Use a person you have a lawful basis to look up. `Jane Doe` / `acme.com` only shows the request shape.
 

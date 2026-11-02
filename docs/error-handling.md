@@ -39,15 +39,19 @@ curl (`examples/curl/_lib.sh`) follows the same status rule.
   "data": { "email": "jane.doe@acme.com", "verified": true },
   "usage": {
     "treg_call_id": "1e0bf1cd3f7f42188980ecbe59829836",
-    "credits_charged": 211905,
-    "retail_usd": 0.089,
-    "remaining_tokens": 11688095,
-    "verify": true
+    "credits_charged": 0,
+    "retail_usd": 0,
+    "remaining_tokens": 10000,
+    "verify": true,
+    "trial_used": true,
+    "people_search_trials_remaining": 4
   }
 }
 ```
 
-`data` is passed through from Treg. Do not assume `email` is always present; branch on your own checks. `usage.credits_charged` is `0` when upstream metered cost is `0` (a free miss is not billed here either). `usage.retail_usd` is the upstream USD × 10. Upstream cost of goods is not in the response.
+`data` is passed through from Treg. Do not assume `email` is always present; branch on your own checks.
+
+`usage.trial_used: true` means this call was one of the 5 free signup trials. Charge fields are then `0`, and `people_search_trials_remaining` is what is left. An upstream error refunds the trial, so a 502 does not burn one of the five. After the trials are gone, `credits_charged` follows retail USD (`upstream × 10`) at `$0.42` per million credits, and a `$0` upstream miss is still `0`. Upstream cost of goods is not in the response.
 
 ## Paywall body
 
@@ -57,7 +61,8 @@ curl (`examples/curl/_lib.sh`) follows the same status rule.
   "code": "paywall",
   "remaining": 0,
   "upgrade_url": "https://jevtypesafe.org/pricing/",
-  "account_url": "https://jevtypesafe.org/account/"
+  "account_url": "https://jevtypesafe.org/account/",
+  "people_search_trials_remaining": 0
 }
 ```
 

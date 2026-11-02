@@ -63,16 +63,35 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/PeopleFindResponse"
-              example:
-                data:
-                  email: jane.doe@acme.com
-                  verified: true
-                usage:
-                  treg_call_id: 1e0bf1cd3f7f42188980ecbe59829836
-                  credits_charged: 211905
-                  retail_usd: 0.089
-                  remaining_tokens: 11688095
-                  verify: true
+              examples:
+                signupTrial:
+                  summary: One of the 5 free signup trials
+                  value:
+                    data:
+                      email: jane.doe@acme.com
+                      verified: true
+                    usage:
+                      treg_call_id: 1e0bf1cd3f7f42188980ecbe59829836
+                      credits_charged: 0
+                      retail_usd: 0
+                      remaining_tokens: 10000
+                      verify: true
+                      trial_used: true
+                      people_search_trials_remaining: 4
+                afterTrials:
+                  summary: Billed call after the 5 free trials
+                  value:
+                    data:
+                      email: jane.doe@acme.com
+                      verified: true
+                    usage:
+                      treg_call_id: 1e0bf1cd3f7f42188980ecbe59829836
+                      credits_charged: 211905
+                      retail_usd: 0.089
+                      remaining_tokens: 11688095
+                      verify: true
+                      trial_used: false
+                      people_search_trials_remaining: 0
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -267,7 +286,7 @@ components:
           example:
             error: Missing or invalid API key. Use Authorization: Bearer jv_live_...
     Paywall:
-      description: Prepaid balance cannot cover the reservation.
+      description: Returned only after the 5 free signup trials are used and the prepaid balance cannot cover the reservation.
       content:
         application/json:
           schema:
@@ -278,6 +297,7 @@ components:
             remaining: 0
             upgrade_url: https://jevtypesafe.org/pricing/
             account_url: https://jevtypesafe.org/account/
+            people_search_trials_remaining: 0
 
   schemas:
     PeopleFindRequest:
@@ -321,14 +341,20 @@ components:
               nullable: true
             credits_charged:
               type: integer
-              description: 0 when upstream metered USD is 0.
+              description: 0 during a signup trial, or when upstream metered USD is 0.
             retail_usd:
               type: number
-              description: Upstream metered USD times 10.
+              description: 0 during a signup trial. Otherwise upstream metered USD times 10.
             remaining_tokens:
               type: integer
             verify:
               type: boolean
+            trial_used:
+              type: boolean
+              description: True when this success consumed one of the 5 free signup trials.
+            people_search_trials_remaining:
+              type: integer
+              description: Free People Search calls left on the account. New accounts start at 5.
 
     DecideRequest:
       type: object
@@ -402,3 +428,6 @@ components:
         account_url:
           type: string
           format: uri
+        people_search_trials_remaining:
+          type: integer
+          description: Present on People Search paywall and upstream errors. A failed call does not consume a trial.
