@@ -2,7 +2,7 @@
 
 Runnable curl, JavaScript, and Python for the **Treg People Search API** on [jevtypesafe.org](https://jevtypesafe.org/people-search/). One prepaid `jv_live_` key covers work-email find and a **Jev API** ICP gate.
 
-**5 free People Search trials on signup.** Open [https://jevtypesafe.org/people-search/](https://jevtypesafe.org/people-search/), sign in, create a `jv_live_` key, and call `POST /api/v1/people/email/find` five times at no charge. Those trials are separate from decide credits. A failed lookup is refunded and does not use one up. After the five, calls debit your prepaid balance.
+**3 free People Search trials on signup.** Open [https://jevtypesafe.org/people-search/](https://jevtypesafe.org/people-search/), sign in, create a `jv_live_` key, and call `POST /api/v1/people/email/find` three times at no charge. Those trials are separate from decide credits. A failed lookup is refunded and does not use one up. After the three, calls debit your prepaid balance.
 
 The page has a live **Try the API** panel. Docs: [People Search API](https://jevtypesafe.org/docs/people-search/) · [Decide API](https://jevtypesafe.org/docs/api/).
 
@@ -136,7 +136,7 @@ node examples/javascript/icp-gate-then-find.mjs \
 
 Success is upstream `data` plus host `usage`. `data.email` is common and not guaranteed.
 
-Signup trial (one of the 5 free calls). `trial_used` is true and both charge fields are `0`:
+Signup trial (one of the 3 free calls). `trial_used` is true and both charge fields are `0`:
 
 ```json
 {
@@ -151,12 +151,12 @@ Signup trial (one of the 5 free calls). `trial_used` is true and both charge fie
     "remaining_tokens": 10000,
     "verify": true,
     "trial_used": true,
-    "people_search_trials_remaining": 4
+    "people_search_trials_remaining": 2
   }
 }
 ```
 
-After the 5 trials, the same hit is billed. `credits_charged: 211905` is the debit for retail `$0.089` at this host’s `$0.42` per million credits (`ceil(0.089 / (0.42 / 1e6))`). If upstream cost is `$0`, `credits_charged` is `0` even after the trials are gone.
+After the 3 trials, the same hit is billed. `credits_charged: 211905` is the debit for retail `$0.089` at this host’s `$0.42` per million credits (`ceil(0.089 / (0.42 / 1e6))`). If upstream cost is `$0`, `credits_charged` is `0` even after the trials are gone.
 
 ```json
 {
@@ -223,18 +223,18 @@ Which codes to retry: [docs/error-handling.md](docs/error-handling.md).
 
 ## Pricing
 
-**New accounts get 5 free People Search trials.** Sign up at [https://jevtypesafe.org/people-search/](https://jevtypesafe.org/people-search/), create a `jv_live_` key, and the first 5 successful finds return `usage.trial_used: true`, `usage.credits_charged: 0`, and `usage.retail_usd: 0`. `usage.people_search_trials_remaining` counts down from 5. An upstream failure refunds that trial. The 5 calls are separate from decide credits.
+**New accounts get 3 free People Search trials.** Sign up at [https://jevtypesafe.org/people-search/](https://jevtypesafe.org/people-search/), create a `jv_live_` key, and the first 3 successful finds return `usage.trial_used: true`, `usage.credits_charged: 0`, and `usage.retail_usd: 0`. `usage.people_search_trials_remaining` counts down from 3. An upstream failure refunds that trial. The 3 calls are separate from decide credits.
 
 After those 5, Treg’s catalog rate is marked up **10×** and settled into the same prepaid credits as decide.
 
 | Upstream metered | Retail on jevtypesafe.org | Credits debited (`$0.42` / M) |
 | --- | --- | --- |
-| Signup trial (5 per new account) | $0 | 0 |
+| Signup trial (3 per new account) | $0 | 0 |
 | $0 (free miss, after trials) | $0 | 0 |
 | $0.0089 (published catalog-style example) | $0.089 | 211,905 |
 | $0.05 (pre-call reserve estimate, after trials) | $0.50 held, then settled to the real cost | ~1,190,477 held |
 
-The hold applies only once the 5 trials are used up. It is released when the call fails, and replaced by the real debit when the call succeeds. Packs: [Pricing](https://jevtypesafe.org/pricing/). The `$5` pack is about 11.9M credits.
+The hold applies only once the 3 trials are used up. It is released when the call fails, and replaced by the real debit when the call succeeds. Packs: [Pricing](https://jevtypesafe.org/pricing/). The `$5` pack is about 11.9M credits.
 
 Upstream cost of goods is not returned to API clients. You see `usage.retail_usd`, `usage.credits_charged`, and `usage.people_search_trials_remaining`.
 

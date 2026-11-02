@@ -44,14 +44,14 @@ curl (`examples/curl/_lib.sh`) follows the same status rule.
     "remaining_tokens": 10000,
     "verify": true,
     "trial_used": true,
-    "people_search_trials_remaining": 4
+    "people_search_trials_remaining": 2
   }
 }
 ```
 
 `data` is passed through from Treg. Do not assume `email` is always present; branch on your own checks.
 
-`usage.trial_used: true` means this call was one of the 5 free signup trials. Charge fields are then `0`, and `people_search_trials_remaining` is what is left. An upstream error refunds the trial, so a 502 does not burn one of the five. After the trials are gone, `credits_charged` follows retail USD (`upstream × 10`) at `$0.42` per million credits, and a `$0` upstream miss is still `0`. Upstream cost of goods is not in the response.
+`usage.trial_used: true` means this call was one of the 3 free signup trials. Charge fields are then `0`, and `people_search_trials_remaining` is what is left. An upstream error refunds the trial, so a 502 does not burn one of the three. After the trials are gone, `credits_charged` follows retail USD (`upstream × 10`) at `$0.42` per million credits, and a `$0` upstream miss is still `0`. Upstream cost of goods is not in the response.
 
 ## Paywall body
 

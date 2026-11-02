@@ -65,7 +65,7 @@ paths:
                 $ref: "#/components/schemas/PeopleFindResponse"
               examples:
                 signupTrial:
-                  summary: One of the 5 free signup trials
+                  summary: One of the 3 free signup trials
                   value:
                     data:
                       email: jane.doe@acme.com
@@ -77,9 +77,9 @@ paths:
                       remaining_tokens: 10000
                       verify: true
                       trial_used: true
-                      people_search_trials_remaining: 4
+                      people_search_trials_remaining: 2
                 afterTrials:
-                  summary: Billed call after the 5 free trials
+                  summary: Billed call after the 3 free trials
                   value:
                     data:
                       email: jane.doe@acme.com
@@ -286,7 +286,7 @@ components:
           example:
             error: Missing or invalid API key. Use Authorization: Bearer jv_live_...
     Paywall:
-      description: Returned only after the 5 free signup trials are used and the prepaid balance cannot cover the reservation.
+      description: Returned only after the 3 free signup trials are used and the prepaid balance cannot cover the reservation.
       content:
         application/json:
           schema:
@@ -351,10 +351,10 @@ components:
               type: boolean
             trial_used:
               type: boolean
-              description: True when this success consumed one of the 5 free signup trials.
+              description: True when this success consumed one of the 3 free signup trials.
             people_search_trials_remaining:
               type: integer
-              description: Free People Search calls left on the account. New accounts start at 5.
+              description: Free People Search calls left on the account. New accounts start at 3.
 
     DecideRequest:
       type: object
