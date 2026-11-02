@@ -1,0 +1,30 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: JavaScript client tests
+        run: node --test tests/client.test.mjs
+      - name: Python client tests
+        run: python -m unittest discover -s tests -v
+      - name: Dry-run the examples
+        run: |
+          node examples/javascript/find-email.mjs --dry-run
+          node examples/javascript/icp-gate-then-find.mjs --dry-run
+          python examples/python/find_email.py --dry-run
+          python examples/python/icp_gate_then_find.py --dry-run
+          bash examples/curl/find-by-name.sh --dry-run
+          bash examples/curl/find-by-linkedin.sh --dry-run
+          bash examples/curl/icp-then-find.sh --dry-run

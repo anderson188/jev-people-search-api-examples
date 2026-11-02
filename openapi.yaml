@@ -1,0 +1,404 @@
+openapi: 3.0.3
+info:
+  title: jevtypesafe.org People Search and Jev decide
+  version: "1.0.0"
+  description: |
+    Prepaid host API used by these examples. People Search relays to Treg
+    `treg.people.email.find`. Jev decide is the same account's decision endpoint.
+    This file is an independent description of https://jevtypesafe.org — not an
+    official TypeSafe or Treg specification.
+  contact:
+    url: https://jevtypesafe.org/people-search/
+  license:
+    name: MIT
+    url: https://github.com/anderson188/jev-people-search-api-examples/blob/main/LICENSE
+
+servers:
+  - url: https://jevtypesafe.org
+
+security:
+  - bearerAuth: []
+
+tags:
+  - name: People Search
+    description: Work-email find via Treg, metered on this host.
+  - name: Jev
+    description: Decision calls used to gate enrichment.
+
+paths:
+  /api/v1/people/email/find:
+    post:
+      tags: [People Search]
+      operationId: findWorkEmail
+      summary: Find a work email
+      description: |
+        Provide `linkedin_url`, or both `full_name` and `domain`.
+        Optional `verify: true` asks Treg for route-level verification when the
+        route supports it. Optional header `Idempotency-Key` is forwarded upstream;
+        reuse it when retrying the same logical call.
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PeopleFindRequest"
+            examples:
+              byName:
+                summary: Name and company domain
+                value:
+                  full_name: Jane Doe
+                  domain: acme.com
+                  verify: true
+              byLinkedIn:
+                summary: LinkedIn profile URL
+                value:
+                  linkedin_url: https://www.linkedin.com/in/example
+                  verify: true
+      responses:
+        "200":
+          description: Upstream data plus host usage. `data` shape varies by provider path.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PeopleFindResponse"
+              example:
+                data:
+                  email: jane.doe@acme.com
+                  verified: true
+                usage:
+                  treg_call_id: 1e0bf1cd3f7f42188980ecbe59829836
+                  credits_charged: 211905
+                  retail_usd: 0.089
+                  remaining_tokens: 11688095
+                  verify: true
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/Paywall"
+        "403":
+          description: Account disabled.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+              example:
+                error: Account disabled.
+        "422":
+          description: Upstream rejected the input. `code` is `people_upstream`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+        "429":
+          description: |
+            Too many invalid keys, or the upstream route is rate-limited.
+            Honor `Retry-After` when present.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+              examples:
+                authFlood:
+                  value:
+                    error: Too many invalid API key attempts.
+                    code: rate_limit
+                upstream:
+                  value:
+                    error: People Search is rate-limited right now. Please retry shortly.
+                    code: people_upstream
+        "502":
+          description: Upstream failure or an unexpected People Search error.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+              examples:
+                upstream:
+                  value:
+                    error: People Search upstream failed. Please try again later.
+                    code: people_upstream
+                failed:
+                  value:
+                    error: People Search failed
+                    code: people_failed
+        "503":
+          description: Maintenance, or People Search is not configured on the host.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+              examples:
+                maintenance:
+                  value:
+                    error: Service temporarily offline.
+                unconfigured:
+                  value:
+                    error: People Search upstream is not configured on this host.
+                    code: treg_not_configured
+
+  /api/v1/decide:
+    post:
+      tags: [Jev]
+      operationId: decideIcp
+      summary: Jev choice used as an ICP gate
+      description: |
+        Same `jv_live_` key as People Search. This schema covers the ICP gate in
+        `examples/*/icp-gate-then-find`, not every decide feature. Full decide
+        reference: https://jevtypesafe.org/docs/api/
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecideRequest"
+            example:
+              model: jev
+              state:
+                person:
+                  full_name: Jane Doe
+                  title: VP Engineering
+                  company: Acme
+                  domain: acme.com
+                icp: B2B SaaS company; keep engineering or revenue leaders
+              questions:
+                fit:
+                  type: choice
+                  instructions: Does this person fit the ICP? Choose keep or skip.
+                  criteria:
+                    keep: Role and company match the ICP.
+                    skip: Wrong function, wrong company, or not enough evidence.
+      responses:
+        "200":
+          description: Model answers plus token usage.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DecideResponse"
+              example:
+                model: typesafe/jev-1.14.0
+                answers:
+                  fit:
+                    type: choice
+                    choice: keep
+                    confidence: 0.84
+                usage:
+                  input_tokens: 120
+                  billed_tokens: 120
+                  output_tokens: 0
+                  remaining_tokens: 9988000
+                meta:
+                  decide_model: jev
+                  credit_multiplier: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "402":
+          $ref: "#/components/responses/Paywall"
+        "429":
+          description: Host rate limit or burn cap on decide.
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+              example:
+                error: API key rate limit exceeded. Retry shortly (see Retry-After).
+                code: rate_limit
+        "502":
+          description: Decide upstream failed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+        "503":
+          description: Maintenance.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorBody"
+              example:
+                error: Service temporarily offline.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: jv_live_
+      description: Key from https://jevtypesafe.org/account/. Header `Authorization: Bearer jv_live_...`.
+
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: false
+      schema:
+        type: string
+        maxLength: 128
+      description: Forwarded to Treg on People Search. Reuse the same value when retrying one logical find.
+
+  responses:
+    BadRequest:
+      description: Invalid JSON or the body failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorBody"
+          example:
+            error: Provide linkedin_url, or both full_name and domain (company domain without protocol).
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorBody"
+          example:
+            error: Missing or invalid API key. Use Authorization: Bearer jv_live_...
+    Paywall:
+      description: Prepaid balance cannot cover the reservation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorBody"
+          example:
+            error: Insufficient token balance. Buy a prepaid pack on /pricing — tokens do not expire while your account is active.
+            code: paywall
+            remaining: 0
+            upgrade_url: https://jevtypesafe.org/pricing/
+            account_url: https://jevtypesafe.org/account/
+
+  schemas:
+    PeopleFindRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          description: Person name. Required together with `domain` when `linkedin_url` is omitted.
+        domain:
+          type: string
+          description: Company domain without protocol. The host strips `http(s)://` and any path.
+          examples: [acme.com]
+        linkedin_url:
+          type: string
+          format: uri
+          description: Public LinkedIn profile URL. Enough on its own.
+        verify:
+          type: boolean
+          description: When true, the host sends Treg route verification. Omitted or false skips that header.
+
+    PeopleFindResponse:
+      type: object
+      required: [data, usage]
+      properties:
+        data:
+          type: object
+          description: Upstream JSON. Fields vary. A hit often includes `email` and `verified`.
+          additionalProperties: true
+          properties:
+            email:
+              type: string
+              format: email
+            verified:
+              type: boolean
+        usage:
+          type: object
+          required: [credits_charged, retail_usd, remaining_tokens, verify]
+          properties:
+            treg_call_id:
+              type: string
+              nullable: true
+            credits_charged:
+              type: integer
+              description: 0 when upstream metered USD is 0.
+            retail_usd:
+              type: number
+              description: Upstream metered USD times 10.
+            remaining_tokens:
+              type: integer
+            verify:
+              type: boolean
+
+    DecideRequest:
+      type: object
+      required: [state, questions]
+      properties:
+        model:
+          type: string
+          enum: [jev]
+          default: jev
+        state:
+          type: object
+          additionalProperties: true
+        questions:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ChoiceQuestion"
+          minProperties: 1
+
+    ChoiceQuestion:
+      type: object
+      required: [type, instructions, criteria]
+      properties:
+        type:
+          type: string
+          enum: [choice]
+        instructions:
+          type: string
+        criteria:
+          type: object
+          additionalProperties:
+            type: string
+          minProperties: 1
+
+    DecideResponse:
+      type: object
+      required: [answers, usage]
+      properties:
+        model:
+          type: string
+        answers:
+          type: object
+          additionalProperties: true
+        usage:
+          type: object
+          properties:
+            input_tokens:
+              type: integer
+            billed_tokens:
+              type: integer
+            output_tokens:
+              type: integer
+            remaining_tokens:
+              type: integer
+        meta:
+          type: object
+          additionalProperties: true
+
+    ErrorBody:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+        remaining:
+          type: integer
+        upgrade_url:
+          type: string
+          format: uri
+        account_url:
+          type: string
+          format: uri
